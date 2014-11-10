@@ -39,6 +39,8 @@ OpenNebula installation is 100% automated. Therefore:
 
 =item * ONE component does not generate /etc/one/oned.conf file (yet). https://github.com/quattor/configuration-modules-core/issues/365
 
+=item * The OpenNebula tt files required by the quattor component are shipped by config-templates-metaconfig package
+
 =back
 
 =head1 INITIAL CREATION
