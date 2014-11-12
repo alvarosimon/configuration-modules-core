@@ -365,6 +365,7 @@ sub manage_hosts
                     # The host is not available yet from ONE framework
                     # and it is running correctly
                     $new = $one->create_host(%host_options);
+                    $self->update_something($one, "host", $host, "QUATTOR = 1");
                     $self->info("Created new $type host $host.");
                 }
             } else {
@@ -376,6 +377,7 @@ sub manage_hosts
                     # The new host is reachable but it is failing our tests
                     # Create and disable it
                     $new = $one->create_host(%host_options);
+                    $self->update_something($one, "host", $host, "QUATTOR = 1");
                     $new->disable;
                     $self->info("Created and disabled new host $host");
                 }
@@ -388,6 +390,7 @@ sub manage_hosts
                 $self->info("Disabled existing host $host");
             } else {
                 $new = $one->create_host(%host_options);
+                $self->update_something($one, "host", $host, "QUATTOR = 1");
                 $new->disable;
                 $self->info("Created and disabled new host $host");
             }
