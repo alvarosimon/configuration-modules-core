@@ -22,6 +22,7 @@ my $tree = $cfg->getElement("/software/components/opennebula")->getTree();
 my $one = $cmp->make_one($tree->{rpc});
 # Set ssh multiplex options
 $cmp->set_ssh_command(1);
+$cmp->handle_ssh_config_file(1, undef, 0600);
 
 # Test ONE RPC component
 rpc_history_reset;
