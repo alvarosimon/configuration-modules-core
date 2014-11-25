@@ -11,6 +11,7 @@ use NCM::Component;
 use base qw(NCM::Component NCM::Component::OpenNebula::commands);
 use vars qw(@ISA $EC);
 use LC::Exception;
+use CAF::FileEditor;
 use Net::OpenNebula 0.300.0;
 use Data::Dumper;
 use Readonly;
@@ -19,6 +20,8 @@ use Readonly;
 # TODO use constant from CAF::Render
 Readonly::Scalar my $TEMPLATEPATH => "/usr/share/templates/quattor";
 Readonly::Scalar my $CEPHSECRETFILE => "/var/lib/one/templates/secret/secret_ceph.xml";
+Readonly::Scalar my $SSH_CONFIGFILE => "/var/lib/one/.ssh/config";
+Readonly::Array my @SSH_CONFIG_OPTS => ("Host *", "ControlPersist 600", "ControlMaster auto", "ControlPath /tmp/ssh_mux_%h_%p_%r");
 Readonly::Scalar my $MINIMAL_ONE_VERSION => version->new("4.8.0");
 
 our $EC=LC::Exception::Context->new->will_store_all;
@@ -460,6 +463,31 @@ sub manage_users
     }
 }
 
+# Set oneadmin ssh config file
+sub handle_ssh_config_file
+{
+    my ($self, $usemultiplex, $filename, $mode) = @_;
+
+    if ($usemultiplex) {
+        my $fh = CAF::FileEditor->new($filename, log => $self, mode => $mode,
+                    backup => '.old');
+
+        foreach my $option (@SSH_CONFIG_OPTS) {
+            $self->debug(1,"Processing oneadmin ssh option: $option");
+            $fh->add_or_replace_lines(qr{^\#\s*$option},
+                        qr{^\s*$option},
+                        "$option\n",
+                        ENDING_OF_FILE
+                        );
+        }
+        $fh->close();
+        defined(my $user = getpwnam "oneadmin");
+        defined(my $group = getgrnam "oneadmin");
+        chown $user, $group, glob $filename;
+    }
+    return;
+}
+
 # Check ONE endpoint and detects ONE version
 # returns false if ONE version is not supported by AII
 sub is_supported_one_version
@@ -494,6 +522,7 @@ sub Configure
     my $tree = $config->getElement($base)->getTree();
     # Set ssh multiplex options
     $self->set_ssh_command($tree->{ssh_multiplex});
+    $self->handle_ssh_config_file($tree->{ssh_multiplex}, $SSH_CONFIGFILE, 0600);
     # Set tm_system_ds if available
     my $tm_system_ds = $tree->{tm_system_ds};
     my $untouchables = $tree->{untouchables};
