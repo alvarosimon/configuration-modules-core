@@ -1,0 +1,8 @@
+[%- raw = "<vcpu>$vcpus</vcpu><cpu mode='host-passthrough'>
+<topology sockets='$sockets' cores='$cores' threads='1'/></cpu>
+<devices><video><model type='qxl'/></video></devices>" -%]
+[% IF system.opennebula.hugepages.defined %]
+[%- raw = "$raw\n<memoryBacking><hugepages/></memoryBacking>" -%]
+[% END -%]
+DATA = "[% raw %]",
+TYPE = "kvm"

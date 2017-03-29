@@ -206,4 +206,10 @@ type opennebula_vmtemplate = {
     does not take effect.}
     "labels" ? string[]
     "placements" ? opennebula_placements
+    @{allocates the virtual machine memory using the Huge Pages configuration.
+    Note that the KVM host must support the Huge Page configuration first:
+    https://access.redhat.com/documentation/en-US/\
+    Red_Hat_Enterprise_Linux/7//html/Performance_Tuning_Guide/\
+    sect-Red_Hat_Enterprise_Linux-Performance_Tuning_Guide-Memory-Configuring-huge-pages.html}
+    "hugepages" ? boolean
 } = dict();
