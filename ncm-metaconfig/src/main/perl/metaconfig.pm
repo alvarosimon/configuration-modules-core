@@ -240,10 +240,12 @@ sub handle_service
 
     my %opts = (
         log => $self,
-        mode => $srv->{mode},
-        owner => scalar(getpwnam($srv->{owner})),
-        group => scalar(getgrnam($srv->{group})),
     );
+
+    $opts{mode} = $srv->{mode} if exists($srv->{mode});
+    $opts{owner} = scalar(getpwnam($srv->{owner})) if exists($srv->{owner});
+    $opts{group} = scalar(getgrnam($srv->{group})) if exists($srv->{group});
+
     $opts{backup} = $srv->{backup} if exists($srv->{backup});
 
     $opts{header} = "$srv->{preamble}\n" if $srv->{preamble};
@@ -269,10 +271,9 @@ sub handle_service
     return 1;
 }
 
-
-sub Configure
+sub _configure_files
 {
-    my ($self, $config) = @_;
+    my ($self, $config, $root) = @_;
 
     my $t = $config->getElement($self->prefix)->getTree();
 
@@ -281,12 +282,39 @@ sub Configure
     foreach my $esc_filename (sort keys %{$t->{services}}) {
         my $srvc = $t->{services}->{$esc_filename};
         my $cont_el = $config->getElement($self->prefix()."/services/$esc_filename/contents");
-        $self->handle_service(unescape($esc_filename), $srvc, $cont_el, $actions);
+        my $filename = ($root || '') . unescape($esc_filename);
+        $self->handle_service($filename, $srvc, $cont_el, $actions);
     }
+
+    return $actions;
+}
+
+sub Configure
+{
+    my ($self, $config) = @_;
+
+    my $actions = $self->_configure_files($config);
 
     $self->process_actions($actions);
 
     return 1;
+}
+
+# Generate the files relative to metaconfig subdirectory
+# under the configuration cachemanager cache path.
+# No daemons will be restarted.
+sub aii_command
+{
+    my ($self, $config) = @_;
+
+    my $root = $config->{cache_path};
+    if ($root) {
+        $self->_configure_files($config, "$root/metaconfig");
+        return 1;
+    } else {
+        $self->error("No cache_path found for Configuration instance");
+        return;
+    }
 }
 
 1; # Required for perl module!
