@@ -12,7 +12,7 @@ from openstack_dashboard.settings import HORIZON_CONFIG
 [%-     IF pair.key == 'websso_choices' -%]
 (
 [%          FOR choice IN pair.value.pairs -%]
-    "[%                 choice.key %]": _("[% choice.value %]"),
+    ("[%                 choice.key %]", _("[% choice.value %]")),
 [%          END -%]
 )
 [%     ELSIF pair.value.is_boolean -%]
