@@ -3,7 +3,7 @@
 # ${author-info}
 
 
-declaration template components/openstack/horizon;
+declaration template components/openstack/dashboard/horizon;
 
 @documentation {
     The Horizon configuration options in "caches" Section.
@@ -13,7 +13,7 @@ type openstack_horizon_caches = {
      of the django development server, you will have to login again}
     'BACKEND' : string = 'django.core.cache.backends.memcached.MemcachedCache'
     @{location format <fqdn>:<port>}
-    'LOCATION' : type_hostport = '127.0.0.1:11211'
+    'LOCATION' : type_hostport[] = list('127.0.0.1:11211')
 } = dict();
 
 @documentation {

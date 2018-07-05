@@ -4,13 +4,49 @@ template os_resources;
 include 'common_resources';
 
 
-# Keystone section
+# Identity/ keystone section
+prefix "/software/components/openstack/identity";
 
-prefix "/software/components/openstack/identity/keystone";
+prefix "keystone";
 "database" = dict(
     "connection", "mysql+pymysql://keystone:keystone_db_pass@controller.mysite.com/keystone",
 );
 
+prefix "client/region";
+"regionOne/description" = "abc";
+"regionTwo/description" = "def";
+"regionThree/description" = "xyz";
+"regionThree/parent_region_id" = "regionTwo";
+
+prefix "client/domain";
+"vo1/description" = "vo1";
+"vo2/description" = "vo2";
+
+prefix "client/project/vo1";
+"description" = "main vo1 project";
+"domain_id" = "vo1";
+prefix "client/project/realproject";
+"description" = "some real project";
+"parent_id" = "vo1";
+# no description
+prefix "client/project";
+"opq" = dict();
+
+prefix "client/project/vo2";
+"description" = "main vo2 project";
+"domain_id" = "vo2";
+
+prefix "client/user/user1";
+"description" = "first user";
+"password" = "abc";
+
+prefix "client/group/grp1";
+"description" = "first group";
+"domain_id" = "vo2";
+
+prefix "client/service/glanceone";
+"description" = "OS image one";
+"type" = "image";
 
 # Glance/service section
 
@@ -51,7 +87,7 @@ prefix "/software/components/openstack/dashboard/horizon";
 "allowed_hosts" = list('*');
 "openstack_keystone_url" = 'http://controller.mysite.com:5000/v3';
 "caches/default" = dict(
-    "LOCATION", 'controller.mysite.com:11211',
+    "LOCATION", list('controller.mysite.com:11211'),
 );
 "openstack_keystone_multidomain_support" = true;
 "time_zone" = "Europe/Brussels";
@@ -102,7 +138,7 @@ prefix "/software/components/openstack/network/neutron/l3";
 
 prefix "/software/components/openstack/network/neutron/metadata";
 "DEFAULT" = dict(
-    "nova_metadata_ip", "controller.mysite.com",
+    "nova_metadata_host", "controller.mysite.com",
     "metadata_proxy_shared_secret", "metadata_good_password",
 );
 
@@ -110,6 +146,9 @@ prefix "/software/components/openstack/network/neutron/metadata";
 # Neutron/ML2 section
 
 prefix "/software/components/openstack/network/neutron/ml2";
+"ml2_type_vxlan" = dict(
+    'vni_ranges', '1:1000',
+);
 "securitygroup" = dict(
     "enable_security_group", true,
     "firewall_driver", "neutron.agent.linux.iptables_firewall.IptablesFirewallDriver",
@@ -137,6 +176,46 @@ prefix "/software/components/openstack/compute/nova";
     "service_metadata_proxy", true,
     "metadata_proxy_shared_secret", "metadata_good_password",
 );
+
+# Manila section
+
+prefix "/software/components/openstack/share/manila";
+"DEFAULT" = dict(
+    "transport_url", format("rabbit://openstack:rabbit_pass@%s", OPENSTACK_HOST_SERVER),
+    "auth_strategy", "keystone",
+    "default_share_type", "cephfsnative",
+    "api_paste_config", "/etc/manila/api-paste.ini",
+    "rootwrap_config", "/etc/manila/rootwrap.conf",
+    "share_name_template", "share-%s",
+    "my_ip", MY_IP,
+    "enabled_share_protocols", list('NFS', 'CEPHFS'),
+    "enabled_share_backends", list('lvm', 'cephfsnative'),
+);
+"database" = dict(
+    "connection", format("mysql+pymysql://manila:manila_db_pass@%s/manila", OPENSTACK_HOST_SERVER),
+);
+"keystone_authtoken" = dict(
+    "auth_uri", format('http://%s:5000', OPENSTACK_HOST_SERVER),
+    "auth_url", format('http://%s:35357', OPENSTACK_HOST_SERVER),
+    "username", "manila",
+    "password", "manila_good_password",
+    "memcached_servers", list('controller.mysite.com:11211'),
+);
+"oslo_concurrency" = dict(
+    "lock_path", "/var/lib/manila/tmp",
+);
+# LVM storage setup
+"lvm" = dict(
+    "share_backend_name", "LVM",
+    "share_driver", "manila.share.drivers.lvm.LVMShareDriver",
+    "lvm_share_export_ip", MY_IP,
+);
+# Ceph backend setup
+"cephfsnative" = dict(
+    "share_backend_name", "cephfsnative",
+    "share_driver", "manila.share.drivers.cephfs.driver.CephFSDriver",
+);
+
 
 # OpenRC section
 

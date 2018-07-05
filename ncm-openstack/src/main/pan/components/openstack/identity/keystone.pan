@@ -3,7 +3,7 @@
 # ${author-info}
 
 
-declaration template components/openstack/keystone;
+declaration template components/openstack/identity/keystone;
 
 @documentation {
     The Keystone "token" configuration section
@@ -43,6 +43,8 @@ type openstack_keystone_authtoken = {
     @{Optionally specify a list of memcached server(s) to use for caching. If left
     undefined, tokens will instead be cached in-process ("host:port" list)}
     'memcached_servers' : type_hostport[]
+    @{The region in which the service server can be found}
+    'region_name' ? string = 'RegionOne'
 };
 
 @documentation {
@@ -65,12 +67,12 @@ type openstack_keystone_paste_deploy = {
 Type that sets the OpenStack OpenRC script configuration
 }
 type openstack_openrc_config = {
+    include openstack_region_common
     'os_username' : string = 'admin'
     'os_password' : string
     'os_project_name' : string = 'admin'
     'os_user_domain_name' : string = 'Default'
     'os_project_domain_name' : string = 'Default'
-    'os_region_name' : string = 'RegionOne'
     'os_auth_url' : type_absoluteURI
     'os_identity_api_version' : long(1..) = 3
     'os_image_api_version' : long(1..) = 2

@@ -5,12 +5,26 @@
 
 declaration template components/openstack/common;
 
-type type_storagebackend = string with match(SELF, '^(file|http|swift|rbd|sheepdog|cinder|vmware)$');
+include 'components/openstack/functions';
 
-type type_neutrondriver = string with match(SELF, '^(local|flat|vlan|gre|vxlan|geneve)$');
+type openstack_storagebackend = string with match(SELF, '^(file|http|swift|rbd|sheepdog|cinder|vmware)$');
 
-type type_neutronextension = string with match(SELF, '^(qos|port_security)$');
+type openstack_neutrondriver = string with match(SELF, '^(local|flat|vlan|gre|vxlan|geneve)$');
 
+type openstack_neutronextension = string with match(SELF, '^(qos|port_security)$');
+
+type openstack_valid_region = string with openstack_is_valid_identity(SELF, 'region');
+
+type openstack_tunnel_types = string with match(SELF, '^(vxlan|gre)$');
+
+type openstack_neutron_mechanism_drivers = string with match(SELF, '^(linuxbridge|l2population|openvswitch)$');
+
+type openstack_neutron_firewall_driver = string with match(SELF,
+    '^(neutron.agent.linux.iptables_firewall.IptablesFirewallDriver|openvswitch|iptables_hybrid|iptables)$');
+
+type openstack_share_backends = string with match(SELF, '^(lvm|generic|cephfsnative|cephfsnfs)$');
+
+type openstack_share_protocols = string with match(SELF, '^(NFS|CIFS|CEPHFS|GLUSTERFS|HDFS|MAPRFS)$');
 
 @documentation {
     OpenStack common domains section
@@ -31,6 +45,13 @@ type openstack_domains_common = {
     'username' : string
     @{OpenStack service user password}
     'password' : string
+};
+
+@documentation {
+    OpenStack common region section
+}
+type openstack_region_common = {
+    'os_region_name' : string = 'RegionOne'
 };
 
 @documentation {
@@ -93,6 +114,13 @@ type openstack_DEFAULTS = {
     @{From nova.conf
     List of APIs to be enabled by default}
     'enabled_apis' ? string[] = list('osapi_compute', 'metadata')
+    @{From glance.conf
+    A list of backend names to use. These backend names should be backed by a
+    unique [CONFIG] group with its options}
+    'enabled_backends' ? string[]
+    @{From glance.conf
+    A list of the URLs of glance API servers available to cinder}
+    'glance_api_servers' ? type_absoluteURI[]
     @{From nova.conf
     An URL representing the messaging driver to use and its full configuration.
     Example: rabbit://openstack:<rabbit_password>@<fqdn>
@@ -129,10 +157,14 @@ type openstack_DEFAULTS = {
     'notify_nova_on_port_data_changes' ? boolean = true
     @{From Neutron l3_agent.ini and dhcp_agent.ini
     The driver used to manage the virtual interface}
-    'interface_driver' ? string = 'linuxbridge'
+    'interface_driver' ? string = 'linuxbridge' with match (SELF, '^(linuxbridge|openvswitch)$')
     @{From Neutron dhcp_agent.ini
     The driver used to manage the DHCP server}
     'dhcp_driver' ? string = 'neutron.agent.linux.dhcp.Dnsmasq'
+    @{Number of DHCP agents scheduled to host a tenant network. If this number is
+    greater than 1, the scheduler automatically assigns multiple DHCP agents for
+    a given tenant network, providing high availability for DHCP service}
+    'dhcp_agents_per_network' ? long(1..)
     @{From Neutron dhcp_agent.ini
     The DHCP server can assist with providing metadata support on isolated
     networks. Setting this value to True will cause the DHCP server to append
@@ -141,32 +173,73 @@ type openstack_DEFAULTS = {
     instance must be configured to request host routes via DHCP (Option 121).
     This option does not have any effect when force_metadata is set to True}
     'enable_isolated_metadata' ? boolean = true
-    @{From Neutron metadata_agent.ini
-    IP address or hostname used by Nova metadata server}
-    'nova_metadata_ip' ? string
+    @{From Neutron dhcp_agent.ini
+    In some cases the Neutron router is not present to provide the metadata IP
+    but the DHCP server can be used to provide this info. Setting this value will
+    force the DHCP server to append specific host routes to the DHCP request. If
+    this option is set, then the metadata service will be activated for all the
+    networks}
+    'force_metadata' ? boolean = true
     @{From Neutron metadata_agent.ini
     When proxying metadata requests, Neutron signs the Instance-ID header with a
     shared secret to prevent spoofing. You may select any string for a secret,
     but it must match here and in the configuration used by the Nova Metadata
-    Server. NOTE: Nova uses the same config key, but in [neutron] section.
-    }
+    Server. NOTE: Nova uses the same config key, but in [neutron] section}
     'metadata_proxy_shared_secret' ? string
+    @{From Neutron metadata_agent.ini
+    IP address or DNS name of Nova metadata server}
+    'nova_metadata_host' ? string
     @{Driver for security groups}
     'firewall_driver' ? string = 'neutron.agent.linux.iptables_firewall.IptablesFirewallDriver'
     @{Use neutron and disable the default firewall setup}
     'use_neutron' ? boolean = true
+    @{From manila.conf
+    Default share type to use.
+    The default_share_type option specifies the default share type to be used
+    when shares are created without specifying the share type in the request.
+    The default share type that is specified in the configuration file has to
+    be created with the necessary required extra-specs
+    (such as driver_handles_share_servers) set appropriately with reference to
+    the driver mode used}
+    'default_share_type' ? string = 'default'
+    @{From manila.conf
+    Template string to be used to generate share names}
+    'share_name_template' ? string = 'share-%s'
+    @{From manila.conf
+    File name for the paste.deploy config for manila-api}
+    'api_paste_config' ? absolute_file_path = '/etc/manila/api-paste.ini'
+    @{From manila.conf
+    A list of share backend names to use. These backend names should be
+    backed by a unique [CONFIG] group with its options}
+    'enabled_share_backends' ? openstack_share_backends[] = list('lvm')
+    @{From manila.conf
+    Specify list of protocols to be allowed for share creation}
+    'enabled_share_protocols' ? openstack_share_protocols[] = list('NFS')
 };
 
 
-@documentation {
-    Type to enable RabbitMQ and the message system for OpenStack.
+@documentation{
+Custom configuration type. This is data that is not picked up as configuration data,
+but used to e.g. build up the service endpoints.
+(Any section named quattor is also not rendered)
+
+It is to be used as e.g.
+    type openstack_quattor_service_x = openstack_quattor = dict('quattor', dict('port', 123))
+
+And then this custom service type is included in the service configuration.
+    type openstack_service_x = {
+        'quattor' : openstack_quattor_service_x
+        ...
 }
-type openstack_rabbitmq_config = {
-    @{RabbitMQ user to get access to the queue}
-    'user' : string = 'openstack'
-    'password' : string
-    @{Set config/write/read permissions for RabbitMQ service.
-    A regular expression matching resource names for
-    which the user is granted configure permissions}
-    'permissions' : string[3] = list('.*', '.*', '.*')
+type openstack_quattor = {
+    @{endpoint protocol  (proto://OBJECT:port/suffix)}
+    'proto' : choice('http', 'https') = 'https'
+    @{endpoint port (proto://OBJECT:port/suffix)}
+    'port' : type_port
+    @{endpoint suffix (proto://OBJECT:port/suffix)}
+    'suffix' : string = ''
+    @{region that the service/endpoint belongs to}
+    'region' ? openstack_valid_region
+    @{register this flavour as a service of type}
+    'type' ? string # optional since the API docs only allow limited types
 };

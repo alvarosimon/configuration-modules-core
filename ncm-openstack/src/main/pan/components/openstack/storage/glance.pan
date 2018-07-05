@@ -3,9 +3,9 @@
 # ${author-info}
 
 
-declaration template components/openstack/glance;
+declaration template components/openstack/storage/glance;
 
-include 'components/openstack/keystone';
+include 'components/openstack/identity';
 
 @documentation {
     The Glance configuration options in the "glance_store" Section.
@@ -16,7 +16,7 @@ type openstack_glance_store = {
     Register the storage backends to use for storing disk images
     as a comma separated list. The default stores enabled for
     storing disk images with Glance are "file" and "http"}
-    'stores' : type_storagebackend[] = list ('file', 'http')
+    'stores' : openstack_storagebackend[] = list ('file', 'http')
     @{The default scheme to use for storing images.
     Provide a string value representing the default scheme to use for
     storing images. If not set, Glance uses ``file`` as the default
@@ -24,8 +24,9 @@ type openstack_glance_store = {
     NOTE: The value given for this configuration option must be a valid
     scheme for a store registered with the ``stores`` configuration
     option.}
-    'default_store' : string = 'file' with match (SELF,
-        '^(file|filesystem|http|https|swift|swift\+http|swift\+https|swift\+config|rbd|sheepdog|cinder|vsphere)$')
+    'default_store' : choice('file', 'filesystem', 'http',
+        'https', 'swift', 'swift+http', 'swift+https', 'swift+config', 'rbd',
+        'sheepdog', 'cinder', 'vsphere') = 'file'
     @{Directory to which the filesystem backend store writes images.
     Upon start up, Glance creates the directory if it does not already
     exist and verifies write access to the user under which
