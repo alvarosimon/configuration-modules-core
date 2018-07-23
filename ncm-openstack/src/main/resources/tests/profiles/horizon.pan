@@ -26,3 +26,7 @@ prefix "/metaconfig/contents";
 "websso_choices/mapped" = "Security Assertion Markup Language";
 "websso_choices/myidp_openid" = "Acme Corporation - OpenID Connect";
 "websso_choices/myidp_mapped" = "Acme Corporation - SAML2";
+"available_regions" = list(
+    dict('url', 'http://controller.mysite.com:5000/v3', 'name', 'main'),
+    dict('url', 'http://controller.myothersite.com:5000/v3', 'name', 'other'),
+    );
