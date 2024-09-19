@@ -403,6 +403,15 @@ sub generate_nmstate_config
         $ib->{pkey} = "0x" . sprintf("%04x", $pkey);
         $ib->{mode} = 'datagram';  # TODO: add connected mode, but who still uses that
         $ifaceconfig->{infiniband} = $ib;
+    } elsif (lc($iface->{type} || '') eq 'ovsbridge') {
+        $ifaceconfig->{type} = "ovs-bridge";
+        $ifaceconfig->{state} = "up";
+        $ifaceconfig->{bridge}->{options} = {
+            stp => $YTRUE,
+            port => delete $ifaceconfig->{ports},
+        };
+    } elsif (lc($iface->{type} || '') eq 'ovsintport') {
+        $ifaceconfig->{type} = "ovs-interface";
     } elsif ($is_eth) {
         $ifaceconfig->{type} = "ethernet";
         if ($is_partof_bond) {
