@@ -412,9 +412,6 @@ sub generate_nmstate_config
         $can_ignore_bootproto ||= 1;
         $ifaceconfig->{type} = "ovs-bridge";
         $ifaceconfig->{state} = "up";
-        $ifaceconfig->{bridge}->{options} = {
-            stp => $YTRUE,
-        };
         $ifaceconfig->{bridge}->{port} = [ map { {name => $_} } (@{$iface->{ports}}, $name) ];
     } elsif ($lctype eq 'ovsintport') {
         $can_ignore_bootproto ||= 1;
@@ -426,7 +423,7 @@ sub generate_nmstate_config
         $ifaceconfig->{type} = "ethernet";
         if ($is_partof_bond) {
             # no ipv4 address for bonded eth, plus in nmstate bonded eth is controlled by controller. no config is required.
-            $ifaceconfig->{ipv4}->{enabled} = "false";
+            $ifaceconfig->{ipv4}->{enabled} = $YFALSE;
             $ifaceconfig->{state} = "up";
         }
     } elsif ($is_vlan_eth) {
@@ -509,8 +506,8 @@ sub generate_nmstate_config
         $ifaceconfig->{ipv4}->{enabled} = $YTRUE;
     } elsif (($eth_bootproto eq "none") && (!$can_ignore_bootproto)) {
         # no ip on interface and is not a part of a bonded interface, assume not managed so disable eth.
-        $ifaceconfig->{ipv4}->{enabled} = "false";
-        $ifaceconfig->{ipv6}->{enabled} = "false";
+        $ifaceconfig->{ipv4}->{enabled} = $YFALSE;
+        $ifaceconfig->{ipv6}->{enabled} = $YFALSE;
         $ifaceconfig->{state} = "down";
     } elsif ($eth_bootproto eq "bootp"){
         $self->error("bootp bootproto not supported by nmstate");
@@ -583,8 +580,7 @@ sub generate_nmstate_config
             name => $name,
             'profile-name' => $name,
             ipv4 => {
-                dhcp => $YFALSE,
-                enabled => $YTRUE,
+                enabled => $YFALSE,
             },
             ipv6 => {
                 enabled => $YFALSE,
