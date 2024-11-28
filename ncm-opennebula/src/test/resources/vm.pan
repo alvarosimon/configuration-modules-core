@@ -183,3 +183,5 @@ prefix "/system/opennebula";
 );
 
 "cpuratio" = 1.0;
+"cpu_model" = "Broadwell-noTSX-IBRS";
+
