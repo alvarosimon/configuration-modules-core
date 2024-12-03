@@ -71,7 +71,7 @@ type opennebula_vmtemplate_vnet = string{} with {
             (! (exists(v['type']) && match(v['type'], '^(Bridge|OVSBridge|IPIP)$'))) && # special types no real dev
             (! (exists(v['driver']) && (v['driver'] == 'bonding'))) && # bonding interface is no real device
             (! (match(k, '^ib\d+$') && exists("/hardware/cards/ib/" + k))) # It's ok if this is an IB device
-            ) {
+        ) {
             error("/system/network/interfaces/%s has no entry in the vnet map", k);
         };
     };
